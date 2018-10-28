@@ -157,7 +157,7 @@ def main():
 
     Webcam1 = Webcam()
 
-    BobbyTables = Robot(motors=motors, rangeSensors=rangeSensors)
+    BobbyTables = Robot(motors=motors, rangeSensors=rangeSensors, webcam=Webcam1)
     BobbyTables.diagnostics()
 
 if __name__ == "__main__":
