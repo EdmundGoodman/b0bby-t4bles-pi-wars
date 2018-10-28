@@ -22,12 +22,19 @@ class Robot:
         for rangeSensor in self._rangeSensors:
             print(rangeSensor)
 
+    def showPeripherals(self):
+        print(self._webcam)
+        print(self._compass)
+        print(self._nerfGun)
+
     def diagnostics(self):
         print("Diagnostics: ")
         print("Motors: ")
         self.showMotors()
         print("Range sensors: ")
         self.showRangeSensors()
+        print("Periperals: ")
+        self.showPeripherals()
 
         self.forward(10)
         self.backward(10)
@@ -253,7 +260,7 @@ class NerfGun:
         pass
 
     def __repr__(self):
-        return "Nerf gun on pins {}".format(self._pins)
+        return "\tNerf gun on pins: {}".format(self._pins)
 
 
 class Compass:
@@ -273,7 +280,7 @@ class Compass:
         return None
 
     def __repr__(self):
-        return "Compass on pins {}".format(self._pins)
+        return "\tCompass on pins: {}".format(self._pins)
 
 
 class Webcam:
@@ -281,7 +288,7 @@ class Webcam:
         self._cap = cv2.VideoCapture(0)
 
     def read(self):
-        return self.loadImage("alien.png")
+        return self.loadImage("images/alien.png")
 
         _, frame =self._cap.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -299,7 +306,7 @@ class Webcam:
         return self._cap
 
     def __repr__(self):
-        return "Webcam"
+        return "\tWebcam"
 
 
 class RangeSensor:
@@ -324,7 +331,7 @@ class RangeSensor:
         return None
 
     def __repr__(self):
-        return "Ultrasonic range sensor #{}, on pins: {}".format(
+        return "\tUltrasonic range sensor #{}, on pins: {}".format(
             self.getNumber(),
             self.getPins(),
         )
@@ -371,7 +378,7 @@ class Motor:
         self._direction *= -1
 
     def __repr__(self):
-        return "Motor #{}, on pins: {}, with speed offset {}".format(
+        return "\tMotor #{}, on pins: {}, with speed offset {}".format(
             self.getNumber(),
             self.getPins(),
             self.getOffest(),
@@ -406,7 +413,7 @@ def main():
 
     #Testing classifying an image
     print("\nTesting image recognition:")
-    imageName = "blueBlock.jpg"
+    imageName = "images/blueBlock.jpg"
     img = Webcam1.loadImage(imageName)
     colour = Classifier1.classify(img, draw_histogram=True)
     print(colour)
