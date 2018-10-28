@@ -6,7 +6,8 @@ import cv2
 
 
 class Robot:
-    def __init__(self, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
+    def __init__(self, name, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
+        self._name = name
         self._motors = motors
         self._rangeSensors = rangeSensors
         self._webcam = webcam
@@ -23,6 +24,7 @@ class Robot:
             print(rangeSensor)
 
     def diagnostics(self):
+        print("Diagnostics: ")
         print("Motors: ")
         self.showMotors()
         print("Range sensors: ")
@@ -137,6 +139,9 @@ class Robot:
     def RCControl(self):
         #RC control
         pass
+
+    def __repr__(self):
+        return "{}".format(self._name)
 
 
 class ColourClassifier():
@@ -277,10 +282,19 @@ class Webcam:
         self._cap = cv2.VideoCapture(0)
 
     def read(self):
+        return self.loadImage("alien.png")
+
         _, frame =self._cap.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
         return frame
+
+    def loadImage(self, imageName):
+        img = cv2.imread(imageName)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = img.reshape((img.shape[0] * img.shape[1],3)) #represent as row*column,channel number
+        return img
+
 
     def getCap(self):
         return self._cap
@@ -380,6 +394,7 @@ def main():
     Classifier1 = ColourClassifier(2, 255*2)
 
     BobbyTables = Robot(
+        name="Robert'); DROP TABLE Students; -- "
         motors=motors,
         rangeSensors=rangeSensors,
         webcam=Webcam1,
@@ -391,10 +406,9 @@ def main():
 
 
     #Testing classifying an image
-    IMAGE = "blueBlock.jpg"
-    img = cv2.imread(IMAGE)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img = img.reshape((img.shape[0] * img.shape[1],3)) #represent as row*column,channel number
+    print("\nTesting image recognition:")
+    imageName = "blueBlock.jpg"
+    img = Webcam1.loadImage(imageName)
     colour = Classifier1.classify(img, draw_histogram=True)
     print(colour)
 
