@@ -4,7 +4,6 @@ from time import sleep
 import numpy as np
 import cv2
 
-
 class Robot:
     def __init__(self, name, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
         self._name = name
