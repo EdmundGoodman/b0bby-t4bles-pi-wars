@@ -393,7 +393,7 @@ def main():
     Classifier1 = ColourClassifier(2, 255*2)
 
     BobbyTables = Robot(
-        name="Robert'); DROP TABLE Students; -- "
+        name="Robert'); DROP TABLE Students; -- ",
         motors=motors,
         rangeSensors=rangeSensors,
         webcam=Webcam1,
