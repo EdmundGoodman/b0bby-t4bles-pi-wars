@@ -148,8 +148,8 @@ class Robot:
         #Stateful control with compass, and stop at end
         self.forward(length)
 
-    def RCControl(self):
-        #RC control
+    def remoteControl(self):
+        #Remotely control the robot
         pass
 
     def __repr__(self):
