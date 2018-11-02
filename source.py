@@ -59,7 +59,7 @@ class Robot:
         pass
 
     def doCanyonsOfMars(self, step=5, threshold=100):
-        #Use the left hand follow to solve the maze
+        #Use the right hand follow to solve the maze
         while True:
             #Check for alien sign, then do output
             img = self._webcam.read()
@@ -71,16 +71,16 @@ class Robot:
             if min(sensorValues) > threshold:
                 break
 
-            #Try to turn left
-            if sensorValues[0] > threshold:
-                self.left(90)
+            #Try to turn right
+            if sensorValues[2] > threshold:
+                self.right(90)
                 self.forward(step)
             #Try to go forward
             elif sensorValues[1] > threshold:
                 self.forward(step)
-            #Try to turn right
-            elif sensorValues[2] > threshold:
-                self.right(90)
+            #Try to turn left
+            elif sensorValues[0] > threshold:
+                self.left(90)
                 self.forward(step)
             #Go back
             elif sensorValues[3] > threshold:
@@ -140,6 +140,8 @@ class Robot:
                 pass
             else:
                 self.left(90)
+
+        #Do the run another two times
 
     def doBlastOff(self, length=7500):
         #Drive in a straight line, at full speed
