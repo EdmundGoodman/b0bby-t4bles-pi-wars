@@ -1,8 +1,8 @@
-#https://piwars.org/2019-competition/challenges/
-from sklearn.cluster import KMeans
+from collections import Counter
 from time import sleep
-import numpy as np
+from PIL import Image
 import cv2
+
 
 class Robot:
     def __init__(self, name, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
@@ -27,14 +27,19 @@ class Robot:
         print(self._compass)
         print(self._nerfGun)
 
+    def showSoftware(self):
+        print(self._classifier)
+
     def diagnostics(self):
-        print("Diagnostics: ")
+        print("Diagnostics for \"{}\": ".format(self))
         print("Motors: ")
         self.showMotors()
         print("Range sensors: ")
         self.showRangeSensors()
         print("Periperals: ")
         self.showPeripherals()
+        print("Software: ")
+        self.showSoftware()
 
         self.forward(10)
         self.backward(10)
@@ -58,9 +63,8 @@ class Robot:
         while True:
             #Check for alien sign, then do output
             img = self._webcam.read()
-            if self._classifier.classify(img) == "green":
+            if self._classifier.classifyColour(img) == "green":
                 print("Alien!") # Do an output
-
 
             sensorValues = [self._rangeSensors[i].read() for i in range(4)]
             #Check for exit condition: open on all four sides?
@@ -97,7 +101,7 @@ class Robot:
         colours = []
         for _ in range(4):
             img = self._webcam.read()
-            colours.append(self._classifier.classify(img))
+            colours.append(self._classifier.classifyColour(img))
             self.right(90)
 
         targetOrder=["red","blue","green","yellow"]
@@ -150,53 +154,16 @@ class Robot:
         return "{}".format(self._name)
 
 
-class ColourClassifier():
-    def __init__(self, _no_clusters, _distance_threshold):
-        self._no_clusters = _no_clusters
-        self._distance_threshold = _distance_threshold
 
-    def draw_histogram(self, hist, clt):
-        #Draw the histogram#
-        import matplotlib.pyplot as plt
 
-        def plot_colors2(hist, centroids):
-            bar = np.zeros((50, 300, 3), dtype="uint8")
-            startX = 0
-            for (percent, color) in zip(hist, centroids):
-                # plot the relative percentage of each cluster
-                endX = startX + (percent * 300)
-                cv2.rectangle(bar, (int(startX), 0), (int(endX), 50),
-                              color.astype("uint8").tolist(), -1)
-                startX = endX
-            return bar
+class ImageClassifier:
+    def __init__(self, DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE):
+        self.roundBase = ROUNDBASE
+        self.distanceThreshold = DISTANCE_THRESHOLD
+        self.numberPixelThreshold = NUMBER_PIXEL_THRESHOLD
 
-        bar = plot_colors2(hist, clt.cluster_centers_)
-        plt.axis("off")
-        plt.imshow(bar)
-        plt.show()
-
-    def find_histogram(self, clt):
-        numLabels = np.arange(0, len(np.unique(clt.labels_)) + 1)
-        (hist, _) = np.histogram(clt.labels_, bins=numLabels)
-        hist = hist.astype("float")
-        hist /= hist.sum()
-        return hist
-
-    def cluster_colours(self, img):
-        #Cluster the image into the $_no_clusters most prevalent colours, using the KMeans class
-        print("Clustering colours")
-        clt = KMeans(n_clusters=self._no_clusters)
-        clt.fit(img)
-        return clt
-
-    def generate_histogram(self, clt):
-        #Generate and show a histogram of the $_no_clusters most prevalent colours
-        print("Generating histogram")
-        hist =self.find_histogram(clt)
-        return hist
-
-    def get_base_colour(self, rgb_tuple):
-        def manhattan(x,y):
+    def getBaseColour(self, rgb_tuple):
+        def getManhattanDistance(x,y):
             return abs(x[0] - y[0]) + abs(x[1] - y[1]) + abs(x[2] - y[2])
 
         colours = {
@@ -207,51 +174,71 @@ class ColourClassifier():
             "white" : (255,255,255),
             "black" : (0,0,0),
         }
-        distances = {k: manhattan(v, rgb_tuple) for k, v in colours.items()}
+        distances = {k: getManhattanDistance(v, rgb_tuple) for k, v in colours.items()}
         color = min(distances, key=distances.get)
-        return color, distances[color]
+        return color #, distances[color]
 
-    def classify(self, img, draw_histogram=False):
-        clt = self.cluster_colours(img)
-        hist = self.generate_histogram(clt)
-        if draw_histogram:
-            self.draw_histogram(hist, clt)
+    def classifyColour(self, img):
+        #Reduce colour depth
+        img = img.point(lambda x: int(x/self.roundBase)*self.roundBase)
+        pixels = img.getdata()
+        #Count pixels & reject outliers
+        pixelsCount = Counter(pixels)
+        for k in list(pixelsCount):
+            if pixelsCount[k] < self.numberPixelThreshold:
+                del pixelsCount[k]
+        #Classify colour based on getManhattanDistance distance from component colours
+        colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0}
+        for pixels,number in pixelsCount.items():
+            colour = self.getBaseColour(pixels)
+            if colour in colourValues.keys():
+                colourValues[colour] += number
+        #Return the most prevalent colour
+        colour = max(colourValues, key=colourValues.get)
+        return colour
 
-        predominantColour, maxIntensity = None, 0
-        for i in range(len(hist)):
-            cluster, intensity = clt.cluster_centers_[i], hist[i]
-            colour, distance = self.get_base_colour(cluster)
-            #print(cluster, colour, distance, intensity)
-            if colour != "white" and colour != "black" and distance < self._distance_threshold:
-                if intensity > maxIntensity:
-                    predominantColour, maxIntensity = colour, intensity
-        return predominantColour
-
-    def getNoClusters(self):
-        return self._no_clusters
-
-    def setNoClusters(self, no_clusters):
-        self._no_clusters = no_clusters
-
-    def getDistanceThreshold(self):
-        return self._distance_threshold
-
-    def setDistanceThreshold(self, distance_threshold):
-        self._distance_threshold = distance_threshold
+    def __repr__(self):
+        return "\tImage classifier" #include properties?
 
 
-class NerfGun:
-    def __init__(self, pins):
+
+
+class Component:
+    def __init__(self, pins, number):
         self._pins = pins
-        self.config()
+        self._number = number
 
     def config(self):
-        #Do any necessary setup to allow the sensor to be read from
-        for pin in self._pins:
-            pass
+        raise NotImplementedError
 
     def getPins(self):
         return self._pins
+
+    def getNumber(self):
+        return self._number
+
+class Compass(Component):
+    def __init__(self, pins, number):
+        Component.__init__(self, pins, number)
+        self.config()
+
+    def config(self):
+        pass
+
+    def read(self):
+        return None
+
+    def __repr__(self):
+        return "\tCompass on pins: {}".format(self.getPins())
+
+
+class NerfGun(Component):
+    def __init__(self, pins, number):
+        Component.__init__(self, pins, number)
+        self.config()
+
+    def config(self):
+        pass
 
     def revMotors(self):
         pass
@@ -263,44 +250,20 @@ class NerfGun:
         return "\tNerf gun on pins: {}".format(self._pins)
 
 
-class Compass:
-    def __init__(self, pins):
-        self._pins = pins
+class Webcam(Component):
+    def __init__(self, number):
+        Component.__init__(self, None, number)
+        self._cap = cv2.VideoCapture(0)
         self.config()
 
     def config(self):
-        #Do any necessary setup to allow the sensor to be read from
-        for pin in self._pins:
-            pass
-
-    def getPins(self):
-        return self._pins
+        pass
 
     def read(self):
-        return None
-
-    def __repr__(self):
-        return "\tCompass on pins: {}".format(self._pins)
-
-
-class Webcam:
-    def __init__(self):
-        self._cap = cv2.VideoCapture(0)
-
-    def read(self):
-        return self.loadImage("images/alien.png")
-
         _, frame =self._cap.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
         return frame
-
-    def loadImage(self, imageName):
-        img = cv2.imread(imageName)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img = img.reshape((img.shape[0] * img.shape[1],3)) #represent as row*column,channel number
-        return img
-
 
     def getCap(self):
         return self._cap
@@ -309,22 +272,13 @@ class Webcam:
         return "\tWebcam"
 
 
-class RangeSensor:
-    def __init__(self, number, pins):
-        self._number = number
-        self._pins = pins
+class RangeSensor(Component):
+    def __init__(self, pins, number):
+        Component.__init__(self, pins, number)
         self.config()
 
     def config(self):
-        #Do any necessary setup to allow the sensor to be read from
-        for pin in self._pins:
-            pass
-
-    def getNumber(self):
-        return self._number
-
-    def getPins(self):
-        return self._pins
+        pass
 
     def read(self):
         #Read from the sensor
@@ -336,34 +290,20 @@ class RangeSensor:
             self.getPins(),
         )
 
-
-class Motor:
-    def __init__(self, number, pins, offset):
-        self._number = number
-        self._pins = pins
+class Motor(Component):
+    def __init__(self, pins, number, offset):
+        Component.__init__(self, pins, number)
         self._offset = offset
         self._direction = 1
         self.config()
 
     def config(self):
-        #Do any necessary setup to allow the motor to be driven
-        for pin in self._pins:
-            pass
+        pass
 
     def drive(self, speed):
         #Drive motor at given speed using PWM
         #Implement h-bridge to do bi-directionality
         offsetSpeed = speed / self._offset
-
-    def stop(self):
-        #Stop the motor
-        pass
-
-    def getNumber(self):
-        return self._number
-
-    def getPins(self):
-        return self._pins
 
     def getOffest(self):
         return self._offset
@@ -385,19 +325,26 @@ class Motor:
         )
 
 
+
+
+
 def main():
-    Motor1 = Motor(number=1,pins=[],offset=1)
-    Motor2 = Motor(number=2,pins=[],offset=1)
+    Motor1 = Motor(pins=[],number=1,offset=1)
+    Motor2 = Motor(pins=[],number=2,offset=1)
     motors = [Motor1, Motor2]
 
-    RangeSensor1 = RangeSensor(number=1, pins=[])
+    RangeSensor1 = RangeSensor(pins=[],number=1)
     rangeSensors = [RangeSensor1]
 
-    Webcam1 = Webcam()
-    Compass1 = Compass([])
-    NerfGun1 = NerfGun([])
+    Webcam1 = Webcam(number=1)
+    Compass1 = Compass(pins=[],number=1)
+    NerfGun1 = NerfGun(pins=[],number=1)
 
-    Classifier1 = ColourClassifier(2, 255*2)
+    Classifier1 = ImageClassifier(
+        DISTANCE_THRESHOLD=100,
+        NUMBER_PIXEL_THRESHOLD=100,
+        ROUNDBASE=20,
+    )
 
     BobbyTables = Robot(
         name="Robert'); DROP TABLE Students; -- ",
@@ -410,13 +357,6 @@ def main():
     )
     BobbyTables.diagnostics()
 
-
-    #Testing classifying an image
-    print("\nTesting image recognition:")
-    imageName = "images/blueBlock.jpg"
-    img = Webcam1.loadImage(imageName)
-    colour = Classifier1.classify(img, draw_histogram=True)
-    print(colour)
 
 if __name__ == "__main__":
     exit(main())
