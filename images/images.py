@@ -1,14 +1,14 @@
 from collections import Counter
 from PIL import Image
 
-class image_classifier:
+class ImageClassifier:
     def __init__(self, DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE):
         self.roundBase = ROUNDBASE
         self.distanceThreshold = DISTANCE_THRESHOLD
         self.numberPixelThreshold = NUMBER_PIXEL_THRESHOLD
 
-    def get_base_colour(self, rgb_tuple):
-        def manhattan(x,y):
+    def getBaseColour(self, rgb_tuple):
+        def getManhattanDistance(x,y):
             return abs(x[0] - y[0]) + abs(x[1] - y[1]) + abs(x[2] - y[2])
 
         colours = {
@@ -19,7 +19,7 @@ class image_classifier:
             "white" : (255,255,255),
             "black" : (0,0,0),
         }
-        distances = {k: manhattan(v, rgb_tuple) for k, v in colours.items()}
+        distances = {k: getManhattanDistance(v, rgb_tuple) for k, v in colours.items()}
         color = min(distances, key=distances.get)
         return color #, distances[color]
 
@@ -32,10 +32,10 @@ class image_classifier:
         for k in list(pixelsCount):
             if pixelsCount[k] < self.numberPixelThreshold:
                 del pixelsCount[k]
-        #Classify colour based on manhattan distance from component colours
+        #Classify colour based on getManhattanDistance distance from component colours
         colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0}
         for pixels,number in pixelsCount.items():
-            colour = self.get_base_colour(pixels)
+            colour = self.getBaseColour(pixels)
             if colour in colourValues.keys():
                 colourValues[colour] += number
         #Return the most prevalent colour
@@ -47,8 +47,7 @@ def load_image(filePath):
     img = Image.open(filePath)
     return img
 
-filePath = "redBlock.png"
-img = load_image(filePath)
+img = load_image("redBlock.png")
 DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE = 100,100,20
-classifier = image_classifier( DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE)
-print(classifier.classify(img))
+Classifier = ImageClassifier(DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE)
+print(Classifier.classify(img))
