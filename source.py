@@ -228,6 +228,7 @@ class Component:
     def getNumber(self):
         return self._number
 
+
 class Compass(Component):
     def __init__(self, pins, number):
         Component.__init__(self, pins, number)
@@ -321,7 +322,8 @@ class RangeSensor(Component):
             return None
 
     def __repr__(self):
-        return "\tUltrasonic range sensor #{}, on pins: {} please check first one is connected to pin trig and second to pin Echo".format(
+        return "\tUltrasonic range sensor #{}, on pins: {} ({})".format(
+            "please check first one is connected to pin Trig and second to pin Echo",
             self.getNumber(),
             self.getPins(),
         )

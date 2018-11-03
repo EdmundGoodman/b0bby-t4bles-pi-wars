@@ -42,12 +42,12 @@ class ImageClassifier:
         colour = max(colourValues, key=colourValues.get)
         return colour
 
-def load_image(filePath):
+def loadImage(filePath):
     #Read the image
     img = Image.open(filePath)
     return img
 
-img = load_image("redBlock.jpg")
+img = loadImage("redBlock.jpg")
 DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE = 100,100,20
 Classifier = ImageClassifier(DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE)
 print(Classifier.classify(img))
