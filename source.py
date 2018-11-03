@@ -278,13 +278,13 @@ class Webcam(Component):
 
 
 class RangeSensor(Component): 
-    def __init__(self, pins, number): #sleep time parenthesis should be added as this is something that needs tinkering
-        Component.__init__(self, pins, number) 
-        self.config()
+    def __init__(self, pins, number, sleepTime = 1): #sleep time parenthesis should be added as this is something that needs tinkering
+        Component.__init__(self, pins, number)
+        self.config(sleepTime)
 
-    def config(self):
+    def config(self, sleepTime):
         
-        self._sleepTime = 1 # This num needs to be tinkered with and can be a lot smaller with slightly less realiable readings
+        self._sleepTime = sleepTime # This num needs to be tinkered with and can be a lot smaller with slightly less realiable readings
         self._PIN_TRIGGER = self._pins[0] #assuimg pins is an array of the actual number pin with first one being trigger and second being echo
         self._PIN_ECHO = self._pins[1]
         GPIO.setup(self._PIN_TRIGGER, GPIO.OUT)
