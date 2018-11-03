@@ -313,7 +313,7 @@ class RangeSensor(Component):
     
 
     def __repr__(self):
-        return "\tUltrasonic range sensor #{}, on pins: {} pleae check first one is connected to trigger and second is echo".format(
+        return "\tUltrasonic range sensor #{}, on pins: {} pleae check first one is connected to pin trig and second to pin Echo".format(
             self.getNumber(),
             self.getPins(),
         )
