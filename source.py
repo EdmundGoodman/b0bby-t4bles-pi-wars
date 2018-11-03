@@ -1,12 +1,10 @@
 from collections import Counter
-from time import sleep, time # time() is also needed to calc distance with ultrasonic sensors
-from PIL import Image
-import cv2
+from time import sleep, time
 import RPi.GPIO as GPIO
-
+from PIL import Image
 import xbox #assuming xbox will be in different file
-# edited rangesensor class
-GPIO.setmode(GPIO.BOARD) # I assume this is something we want to set at the top?
+import cv2
+
 class Robot:
     def __init__(self, name, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
         self._name = name
@@ -278,13 +276,13 @@ class Webcam(Component):
 
 
 class RangeSensor(Component): 
-    def __init__(self, pins, number, sleepTime = 1): #sleep time parenthesis should be added as this is something that needs tinkering
+    def __init__(self, pins, number, sleepTime=1): #sleep time parenthesis should be added as this is something that needs tinkering
         Component.__init__(self, pins, number)
         self.config(sleepTime)
 
     def config(self, sleepTime):
         
-        self._sleepTime = sleepTime # This num needs to be tinkered with and can be a lot smaller with slightly less realiable readings
+        self._sleepTime = sleepTime # This num needs to be tinkered with and can be a lot smaller with slightly less reliable readings
         self._PIN_TRIGGER = self._pins[0] #assuimg pins is an array of the actual number pin with first one being trigger and second being echo
         self._PIN_ECHO = self._pins[1]
         GPIO.setup(self._PIN_TRIGGER, GPIO.OUT)
@@ -313,7 +311,7 @@ class RangeSensor(Component):
     
 
     def __repr__(self):
-        return "\tUltrasonic range sensor #{}, on pins: {} pleae check first one is connected to pin trig and second to pin Echo".format(
+        return "\tUltrasonic range sensor #{}, on pins: {} please check first one is connected to pin trig and second to pin Echo".format(
             self.getNumber(),
             self.getPins(),
         )
@@ -357,6 +355,8 @@ class Motor(Component):
 
 
 def main():
+    GPIO.setmode(GPIO.BOARD) # I assume this is something we want to set at the top?
+    
     Motor1 = Motor(pins=[],number=1,offset=1)
     Motor2 = Motor(pins=[],number=2,offset=1)
     motors = [Motor1, Motor2]
