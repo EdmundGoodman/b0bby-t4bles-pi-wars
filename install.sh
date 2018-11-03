@@ -5,4 +5,3 @@ sudo apt-get install python-opencv
 sudo apt-get install xboxdrv
 sudo apt-get install rpi.gpio
 pip install pillow
-pip install numpy
