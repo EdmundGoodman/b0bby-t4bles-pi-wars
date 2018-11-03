@@ -1,9 +1,9 @@
 from collections import Counter
-from time import sleep
+from time import sleep, time # time() is also needed to calc distance with ultrasonic sensors
 from PIL import Image
 import cv2
 import RPi.GPIO as GPIO
-import time # time.time() is also needed to calc distance with ultrasonic sensors
+
 import xbox #assuming xbox will be in different file
 # edited rangesensor class
 GPIO.setmode(GPIO.BOARD) # I assume this is something we want to set at the top?
@@ -295,15 +295,15 @@ class RangeSensor(Component):
         #Read from the sensor
         try:
             print("Waiting for sensor to settle")
-            time.sleep(self._sleepTime)
+            sleep(self._sleepTime)
             print ("Calculating distance")
             GPIO.output(self._PIN_TRIGGER, GPIO.HIGH)
-            time.sleep(0.00001)
+            sleep(0.00001)
             GPIO.output(self._PIN_TRIGGER, GPIO.LOW)
             while GPIO.input(self._PIN_ECHO)==0:
-                pulse_start_time = time.time()
+                pulse_start_time = time()
             while GPIO.input(self._PIN_ECHO)==1:
-                pulse_end_time = time.time()
+                pulse_end_time = time()
             pulse_duration = pulse_end_time - pulse_start_time
             Distance = round(pulse_duration * 17150, 2)
             return Distance # Distance is in cm
