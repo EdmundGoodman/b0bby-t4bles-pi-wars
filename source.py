@@ -1,9 +1,17 @@
 from collections import Counter
 from time import sleep, time
-import RPi.GPIO as GPIO
 from PIL import Image
-import xbox #assuming xbox will be in different file
 import cv2
+#import xbox
+
+#Pi only libraries
+try:
+    import RPi.GPIO as GPIO
+    piOnlyLibraries = True
+except ImportError:
+    piOnlyLibraries = False
+
+
 
 class Robot:
     def __init__(self, name, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
@@ -275,46 +283,49 @@ class Webcam(Component):
         return "\tWebcam"
 
 
-class RangeSensor(Component): 
-    def __init__(self, pins, number, sleepTime=1): #sleep time parenthesis should be added as this is something that needs tinkering
+class RangeSensor(Component):
+    def __init__(self, pins, number, sleepTime=1):
         Component.__init__(self, pins, number)
-        self.config(sleepTime)
+        self._sleepTime = sleepTime #This num needs to be tinkered with and can be a lot smaller with slightly less reliable readings
+        self.config()
 
-    def config(self, sleepTime):
-        
-        self._sleepTime = sleepTime # This num needs to be tinkered with and can be a lot smaller with slightly less reliable readings
-        self._PIN_TRIGGER = self._pins[0] #assuimg pins is an array of the actual number pin with first one being trigger and second being echo
-        self._PIN_ECHO = self._pins[1]
-        GPIO.setup(self._PIN_TRIGGER, GPIO.OUT)
-        GPIO.setup(self._PIN_ECHO, GPIO.IN)
-        
+    def config(self):
+        if piOnlyLibraries:
+            #Assumimg pins is an array of the actual number pin with first one being trigger and second being echo
+            self._PIN_TRIGGER = self._pins[0]
+            self._PIN_ECHO = self._pins[1]
+            GPIO.setup(self._PIN_TRIGGER, GPIO.OUT)
+            GPIO.setup(self._PIN_ECHO, GPIO.IN)
 
     def read(self):
         #Read from the sensor
-        try:
-            print("Waiting for sensor to settle")
-            sleep(self._sleepTime)
-            print ("Calculating distance")
-            GPIO.output(self._PIN_TRIGGER, GPIO.HIGH)
-            sleep(0.00001)
-            GPIO.output(self._PIN_TRIGGER, GPIO.LOW)
-            while GPIO.input(self._PIN_ECHO)==0:
-                pulse_start_time = time()
-            while GPIO.input(self._PIN_ECHO)==1:
-                pulse_end_time = time()
-            pulse_duration = pulse_end_time - pulse_start_time
-            Distance = round(pulse_duration * 17150, 2)
-            return Distance # Distance is in cm
-        finally:
-            GPIO.cleanup()
-    
-    
+        if piOnlyLibraries:
+            try:
+                sleep(self._sleepTime)
+                GPIO.output(self._PIN_TRIGGER, GPIO.HIGH)
+                sleep(0.00001)
+                GPIO.output(self._PIN_TRIGGER, GPIO.LOW)
+                while GPIO.input(self._PIN_ECHO)==0:
+                    pulse_start_time = time()
+                while GPIO.input(self._PIN_ECHO)==1:
+                    pulse_end_time = time()
+                pulse_duration = pulse_end_time - pulse_start_time
+                distance = round(pulse_duration * 17150, 2)
+            except Exception as e:
+                print(e)
+                distance = None
+            finally:
+                GPIO.cleanup()
+                return distance #Distance is in cm
+        else:
+            return None
 
     def __repr__(self):
         return "\tUltrasonic range sensor #{}, on pins: {} please check first one is connected to pin trig and second to pin Echo".format(
             self.getNumber(),
             self.getPins(),
         )
+
 
 class Motor(Component):
     def __init__(self, pins, number, offset):
@@ -355,8 +366,9 @@ class Motor(Component):
 
 
 def main():
-    GPIO.setmode(GPIO.BOARD) # I assume this is something we want to set at the top?
-    
+    if piOnlyLibraries:
+        GPIO.setmode(GPIO.BOARD)
+
     Motor1 = Motor(pins=[],number=1,offset=1)
     Motor2 = Motor(pins=[],number=2,offset=1)
     motors = [Motor1, Motor2]
