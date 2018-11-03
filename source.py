@@ -299,7 +299,7 @@ class RangeSensor(Component):
             print ("Calculating distance")
             GPIO.output(self._PIN_TRIGGER, GPIO.HIGH)
             time.sleep(0.00001)
-            GPIO.output(slef._PIN_TRIGGER, GPIO.LOW)
+            GPIO.output(self._PIN_TRIGGER, GPIO.LOW)
             while GPIO.input(self._PIN_ECHO)==0:
                 pulse_start_time = time.time()
             while GPIO.input(self._PIN_ECHO)==1:
