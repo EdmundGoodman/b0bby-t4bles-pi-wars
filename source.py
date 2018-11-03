@@ -71,7 +71,7 @@ class Robot:
         #Use the right hand follow to solve the maze
         while True:
             #Check for alien sign, then do output
-            img = self._webcam.read()
+            img = self._webcam.read(library="PIL")
             if self._classifier.classifyColour(img) == "green":
                 print("Alien!") # Do an output
 
@@ -95,7 +95,7 @@ class Robot:
             elif sensorValues[3] > threshold:
                 self.backward(step)
             else:
-                #There is nowhere to turn... Bobby Tables has fallen in the callous canyons of Mars
+                print("There is nowhere to turn... Bobby Tables has fallen in the callous canyons of Mars")
                 break
 
 
@@ -109,7 +109,7 @@ class Robot:
         self.right(45)
         colours = []
         for _ in range(4):
-            img = self._webcam.read()
+            img = self._webcam.read(library="PIL")
             colours.append(self._classifier.classifyColour(img))
             self.right(90)
 
@@ -167,11 +167,11 @@ class Robot:
 
 
 
-class ImageClassifier:
-    def __init__(self, DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE):
-        self.roundBase = ROUNDBASE
-        self.distanceThreshold = DISTANCE_THRESHOLD
-        self.numberPixelThreshold = NUMBER_PIXEL_THRESHOLD
+class ColourClassifier:
+    def __init__(self, distanceThreshold, numberPixelThreshold, roundBase):
+        self._roundBase = roundBase
+        self._distanceThreshold = distanceThreshold
+        self._numberPixelThreshold = numberPixelThreshold
 
     def getBaseColour(self, rgb_tuple):
         def getManhattanDistance(x,y):
@@ -191,12 +191,12 @@ class ImageClassifier:
 
     def classifyColour(self, img):
         #Reduce colour depth
-        img = img.point(lambda x: int(x/self.roundBase)*self.roundBase)
+        img = img.point(lambda x: int(x/self._roundBase)*self._roundBase)
         pixels = img.getdata()
         #Count pixels & reject outliers
         pixelsCount = Counter(pixels)
         for k in list(pixelsCount):
-            if pixelsCount[k] < self.numberPixelThreshold:
+            if pixelsCount[k] < self._numberPixelThreshold:
                 del pixelsCount[k]
         #Classify colour based on getManhattanDistance distance from component colours
         colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0}
@@ -271,10 +271,20 @@ class Webcam(Component):
     def config(self):
         pass
 
-    def read(self):
-        _, frame =self._cap.read()
+    def read(self, library="PIL"):
+        #Load the image
+        #_, frame = self._cap.read()
+        print("Using test image, as webcam not available")
+        frame = cv2.imread("images/alien.png")
+
+        #Change the colour order from BGR to RGB for ease of use
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
+
+        if library=="PIL":
+            frame = Image.fromarray(frame)
+        else: #cv2
+            frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
+
         return frame
 
     def getCap(self):
@@ -293,22 +303,22 @@ class RangeSensor(Component):
     def config(self):
         if piOnlyLibraries:
             #Assumimg pins is an array of the actual number pin with first one being trigger and second being echo
-            self._PIN_TRIGGER = self._pins[0]
-            self._PIN_ECHO = self._pins[1]
-            GPIO.setup(self._PIN_TRIGGER, GPIO.OUT)
-            GPIO.setup(self._PIN_ECHO, GPIO.IN)
+            self._pinTrigger = self._pins[0]
+            self._pinEcho = self._pins[1]
+            GPIO.setup(self._pinTrigger, GPIO.OUT)
+            GPIO.setup(self._pinEcho, GPIO.IN)
 
     def read(self):
         #Read from the sensor
         if piOnlyLibraries:
             try:
                 sleep(self._sleepTime)
-                GPIO.output(self._PIN_TRIGGER, GPIO.HIGH)
+                GPIO.output(self._pinTrigger, GPIO.HIGH)
                 sleep(0.00001)
-                GPIO.output(self._PIN_TRIGGER, GPIO.LOW)
-                while GPIO.input(self._PIN_ECHO)==0:
+                GPIO.output(self._pinTrigger, GPIO.LOW)
+                while GPIO.input(self._pinEcho)==0:
                     pulse_start_time = time()
-                while GPIO.input(self._PIN_ECHO)==1:
+                while GPIO.input(self._pinEcho)==1:
                     pulse_end_time = time()
                 pulse_duration = pulse_end_time - pulse_start_time
                 distance = round(pulse_duration * 17150, 2)
@@ -322,8 +332,8 @@ class RangeSensor(Component):
             return None
 
     def __repr__(self):
-        return "\tUltrasonic range sensor #{}, on pins: {} ({})".format(
-            "please check first one is connected to pin Trig and second to pin Echo",
+        #Please check first one is connected to pin Trig and second to pin Echo
+        return "\tUltrasonic range sensor #{}, on pins: {}".format(
             self.getNumber(),
             self.getPins(),
         )
@@ -373,19 +383,24 @@ def main():
 
     Motor1 = Motor(pins=[],number=1,offset=1)
     Motor2 = Motor(pins=[],number=2,offset=1)
-    motors = [Motor1, Motor2]
+    Motor3 = Motor(pins=[],number=3,offset=1)
+    Motor4 = Motor(pins=[],number=4,offset=1)
+    motors = [Motor1, Motor2, Motor4, Motor3]
 
     RangeSensor1 = RangeSensor(pins=[],number=1)
-    rangeSensors = [RangeSensor1]
+    RangeSensor2 = RangeSensor(pins=[],number=2)
+    RangeSensor3 = RangeSensor(pins=[],number=3)
+    RangeSensor4 = RangeSensor(pins=[],number=4)
+    rangeSensors = [RangeSensor1,RangeSensor2,RangeSensor3,RangeSensor4]
 
     Webcam1 = Webcam(number=1)
     Compass1 = Compass(pins=[],number=1)
     NerfGun1 = NerfGun(pins=[],number=1)
 
-    Classifier1 = ImageClassifier(
-        DISTANCE_THRESHOLD=100,
-        NUMBER_PIXEL_THRESHOLD=100,
-        ROUNDBASE=20,
+    Classifier1 = ColourClassifier(
+        distanceThreshold=100,
+        numberPixelThreshold=100,
+        roundBase=20,
     )
 
     BobbyTables = Robot(
@@ -398,6 +413,8 @@ def main():
         imgClassifier=Classifier1,
     )
     BobbyTables.diagnostics()
+
+    BobbyTables.doCanyonsOfMars()
 
 
 if __name__ == "__main__":
