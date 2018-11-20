@@ -1,12 +1,17 @@
 from collections import Counter
 from time import sleep, time
 from PIL import Image
+import math
 import cv2
 #import xbox
 
 #Pi only libraries
 try:
     import RPi.GPIO as GPIO
+    import ThunderBorg3
+    TB = ThunderBorg3.ThunderBorg()
+    import Adafruit_LSM303
+    lsm303 = Adafruit_LSM303.LSM303()
     piOnlyLibraries = True
 except ImportError:
     piOnlyLibraries = False
@@ -14,9 +19,10 @@ except ImportError:
 
 
 class Robot:
-    def __init__(self, name, motors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
+    def __init__(self, name, leftMotors, rightMotors, rangeSensors, webcam, compass, nerfGun, imgClassifier):
         self._name = name
-        self._motors = motors
+        self._leftMotors = leftMotors
+        self._rightMotors = rightMotors
         self._rangeSensors = rangeSensors
         self._webcam = webcam
         self._compass = compass
@@ -24,8 +30,8 @@ class Robot:
         self._classifier = imgClassifier
 
     def showMotors(self):
-        for motor in self._motors:
-            print(motor)
+        print(self._leftMotors)
+        print(self._rightMotors)
 
     def showRangeSensors(self):
         for rangeSensor in self._rangeSensors:
@@ -39,10 +45,14 @@ class Robot:
     def showSoftware(self):
         print(self._classifier)
 
+    def getMotorVoltage(self):
+        return TB.GetBatteryReading()
+
     def diagnostics(self):
         print("Diagnostics for \"{}\": ".format(self))
         print("Motors: ")
         self.showMotors()
+        print("Motor voltage: {}".format(self.getMotorVoltage))
         print("Range sensors: ")
         self.showRangeSensors()
         print("Periperals: ")
@@ -55,17 +65,27 @@ class Robot:
         self.left(360)
         self.right(360)
 
-    def forward(self, distance):
-        pass
+    def forward(self, speed):
+        #Include code to statefully stay on fixed bearing
+        self._leftMotors.drive(speed)
+        self._rightMotors.drive(speed)
 
-    def backward(self, distance):
-        pass
+    def backward(self, speed):
+        #Include code to statefully stay on fixed bearing
+        self._leftMotors.drive(speed*-1)
+        self._rightMotors.drive(speed*-1)
 
-    def left(self, angle):
-        pass
+    def left(self, angle, tolerance=10):
+        endAngle = (self._compass.read()-angle)%360
+        while False: #Turn until the current angle is within a tolerance of the target angle
+            self._leftMotors.drive(speed*-1)
+            self._rightMotors.drive(speed)
 
-    def right(self, angle):
-        pass
+    def right(self, angle, tolerance=10):
+        endAngle = (self._compass.read()-angle)%360
+        while False: #Turn until the current angle is within a tolerance of the target angle
+            self._leftMotors.drive(speed)
+            self._rightMotors.drive(speed*-1)
 
     def doCanyonsOfMars(self, step=5, threshold=100):
         #Use the right hand follow to solve the maze
@@ -238,7 +258,12 @@ class Compass(Component):
         pass
 
     def read(self):
-        return None
+        if piOnlyLibraries:
+            accel, mag = lsm303.read()
+            #Processing code in here
+            return mag
+        else:
+            return 0
 
     def __repr__(self):
         return "\tCompass on pins: {}".format(self.getPins())
@@ -339,53 +364,54 @@ class RangeSensor(Component):
         )
 
 
-class Motor(Component):
-    def __init__(self, pins, number, offset):
+class Motors(Component):
+    def __init__(self, pins, number, noMotors, offset, direction):
         Component.__init__(self, pins, number)
+        self._noMotors = noMotors
         self._offset = offset
-        self._direction = 1
+        self._direction = direction
         self.config()
 
     def config(self):
         pass
 
     def drive(self, speed):
-        #Drive motor at given speed using PWM
-        #Implement h-bridge to do bi-directionality
-        offsetSpeed = speed / self._offset
+        #Drive motor at given speed
+        if piOnlyLibraries:
+            offsetSpeeds = (speed/self._offset)*self._direction
+            if offsetSpeed < -1 or offsetSpeed > 1:
+                raise Exception("Motor speed too high")
+            TB.SetMotor1(offsetSpeed)
+
+    def getNumberMotors(self):
+        return self._noMotors
 
     def getOffest(self):
         return self._offset
 
-    def setOffest(self, offset):
-        self._offset = offset
-
     def getDirection(self):
         return self._direction
 
-    def reverseDirection(self):
-        self._direction *= -1
-
     def __repr__(self):
-        return "\tMotor #{}, on pins: {}, with speed offset {}".format(
+        return "\t{} motors #{}, on pins: {}, with speed offset {} and direction offset {}".format(
+            self.getNumberMotors(),
             self.getNumber(),
             self.getPins(),
             self.getOffest(),
+            self.getDirection()
         )
-
 
 
 
 
 def main():
     if piOnlyLibraries:
+        TB.Init()
+        TB.SetBatteryMonitoringLevels(9,12)
         GPIO.setmode(GPIO.BOARD)
 
-    Motor1 = Motor(pins=[],number=1,offset=1)
-    Motor2 = Motor(pins=[],number=2,offset=1)
-    Motor3 = Motor(pins=[],number=3,offset=1)
-    Motor4 = Motor(pins=[],number=4,offset=1)
-    motors = [Motor1, Motor2, Motor4, Motor3]
+    LeftMotors = Motors(pins=[],number=1,noMotors=2,offset=1,direction=1)
+    RightMotors = Motors(pins=[],number=1,noMotors=2,offset=1,direction=1)
 
     RangeSensor1 = RangeSensor(pins=[],number=1)
     RangeSensor2 = RangeSensor(pins=[],number=2)
@@ -405,7 +431,8 @@ def main():
 
     BobbyTables = Robot(
         name="Robert'); DROP TABLE Students; -- ",
-        motors=motors,
+        leftMotors=LeftMotors,
+        rightMotors=RightMotors,
         rangeSensors=rangeSensors,
         webcam=Webcam1,
         compass=Compass1,
