@@ -301,6 +301,7 @@ class NerfGun(Component):
 class Webcam(Component):
     def __init__(self, number):
         Component.__init__(self, None, number)
+        #Add resolution param?
         self.config()
 
     def config(self):
@@ -310,14 +311,19 @@ class Webcam(Component):
 
         if piOnlyLibraries:
             #Load the image
-            stream = io.BytesIO()
-            camera.capture(stream, format="bmp")
-            frame = Image.open(io.BytesIO(stream))
-
             if library=="PIL":
-                pass
+                stream = io.BytesIO()
+                camera.capture(stream, format="bmp")
+                frame = Image.open(io.BytesIO(stream))
             else: #cv2
-                frame = numpy.array(frame)[:,:,::-1]
+                camera.resolution = (480,640) #Paramaterise
+                #camera.framerate = 24; sleep(2)
+                frame = np.empty((240*320*3), dtype=np.uint8)
+                camera.capture(frame, "rgb")
+                frame = frame.reshape((240,320,3))
+
+                #Using the PIL Image frame
+                #frame = numpy.array(frame)[:,:,::-1]
 
         else:
             print("Using test image, as webcam not available")
