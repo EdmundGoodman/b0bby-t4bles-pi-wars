@@ -1,8 +1,11 @@
 from collections import Counter
 from time import sleep, time
 from PIL import Image
+import numpy
 import math
 import cv2
+import io
+
 #import xbox
 
 #Pi only libraries
@@ -10,11 +13,19 @@ try:
     import RPi.GPIO as GPIO
     import ThunderBorg3
     TB = ThunderBorg3.ThunderBorg()
+
     import Adafruit_LSM303
     lsm303 = Adafruit_LSM303.LSM303()
+
+    from picamera import PiCamera
+    camera = PiCamera()
+
     piOnlyLibraries = True
 except ImportError:
     piOnlyLibraries = False
+
+def cleanup():
+    camera.close()
 
 
 
@@ -290,30 +301,37 @@ class NerfGun(Component):
 class Webcam(Component):
     def __init__(self, number):
         Component.__init__(self, None, number)
-        self._cap = cv2.VideoCapture(0)
         self.config()
 
     def config(self):
         pass
 
     def read(self, library="PIL"):
-        #Load the image
-        #_, frame = self._cap.read()
-        print("Using test image, as webcam not available")
-        frame = cv2.imread("images/alien.png")
 
-        #Change the colour order from BGR to RGB for ease of use
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if piOnlyLibraries:
+            #Load the image
+            stream = io.BytesIO()
+            camera.capture(stream, format="bmp")
+            frame = Image.open(io.BytesIO(stream))
 
-        if library=="PIL":
-            frame = Image.fromarray(frame)
-        else: #cv2
-            frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
+            if library=="PIL":
+                pass
+            else: #cv2
+                frame = numpy.array(frame)[:,:,::-1]
+
+        else:
+            print("Using test image, as webcam not available")
+            frame = cv2.imread("images/alien.png")
+
+            #Change the colour order from BGR to RGB for ease of use
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+            if library=="PIL":
+                frame = Image.fromarray(frame)
+            else: #cv2
+                frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
 
         return frame
-
-    def getCap(self):
-        return self._cap
 
     def __repr__(self):
         return "\tWebcam"
@@ -365,8 +383,8 @@ class RangeSensor(Component):
 
 
 class Motors(Component):
-    def __init__(self, pins, number, noMotors, offset, direction):
-        Component.__init__(self, pins, number)
+    def __init__(self, number, noMotors, offset, direction):
+        Component.__init__(self, None, number)
         self._noMotors = noMotors
         self._offset = offset
         self._direction = direction
@@ -410,8 +428,8 @@ def main():
         TB.SetBatteryMonitoringLevels(9,12)
         GPIO.setmode(GPIO.BOARD)
 
-    LeftMotors = Motors(pins=[],number=1,noMotors=2,offset=1,direction=1)
-    RightMotors = Motors(pins=[],number=1,noMotors=2,offset=1,direction=1)
+    LeftMotors = Motors(number=1,noMotors=2,offset=1,direction=1)
+    RightMotors = Motors(number=1,noMotors=2,offset=1,direction=1)
 
     RangeSensor1 = RangeSensor(pins=[],number=1)
     RangeSensor2 = RangeSensor(pins=[],number=2)
@@ -443,6 +461,7 @@ def main():
 
     BobbyTables.doCanyonsOfMars()
 
+    cleanup()
 
 if __name__ == "__main__":
     exit(main())
