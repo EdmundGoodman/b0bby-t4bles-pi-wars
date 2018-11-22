@@ -25,7 +25,8 @@ except ImportError:
     piOnlyLibraries = False
 
 def cleanup():
-    camera.close()
+    if piOnlyLibraries:
+        camera.close()
 
 
 
@@ -299,13 +300,31 @@ class NerfGun(Component):
 
 
 class Webcam(Component):
-    def __init__(self, number):
+    def __init__(self, number, resolution, framerate):
         Component.__init__(self, None, number)
         #Add resolution param?
+        self._resolution = resolution
+        self._framerate = framerate
         self.config()
 
     def config(self):
-        pass
+        if piOnlyLibraries:
+            camera.resolution = self._resolution
+            camera.framerate = self._framerate
+
+    def getResolution(self):
+        return self._resolution
+
+    def setResolution(self, resolution):
+        self._resolution = resolution
+        self.config()
+
+    def getFramerate(self):
+        return self._framerate
+
+    def setFramerate(self, framerate):
+        self._framerate = framerate
+        self.config()
 
     def read(self, library="PIL"):
 
@@ -313,13 +332,12 @@ class Webcam(Component):
             #Load the image
             if library=="PIL":
                 stream = io.BytesIO()
-                camera.capture(stream, format="bmp")
+                camera.capture(stream, format="bmp", use_video_port=True)
                 frame = Image.open(io.BytesIO(stream))
             else: #cv2
-                camera.resolution = (480,640) #Paramaterise
                 #camera.framerate = 24; sleep(2)
                 frame = np.empty((240*320*3), dtype=np.uint8)
-                camera.capture(frame, "rgb")
+                camera.capture(frame, format="rgb", use_video_port=True)
                 frame = frame.reshape((240,320,3))
 
                 #Using the PIL Image frame
@@ -328,19 +346,33 @@ class Webcam(Component):
         else:
             print("Using test image, as webcam not available")
             frame = cv2.imread("images/alien.png")
-
             #Change the colour order from BGR to RGB for ease of use
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
             if library=="PIL":
                 frame = Image.fromarray(frame)
             else: #cv2
                 frame = frame.reshape((frame.shape[0] * frame.shape[1],3))
 
+            """
+            print("Using test image, as webcam not available")
+            frame = Image.open("images/alien.png")
+            print("Finished reading image")
+
+            if library=="PIL":
+                pass
+            else: #cv2
+                frame = np.array(Images)
+            print("Finished casting image")
+
+            """
+
         return frame
 
     def __repr__(self):
-        return "\tWebcam"
+        return "\tWebcam with resolution: {} and framerate: {}".format(
+            self.getResolution(),
+            self.getFramerate(),
+        )
 
 
 class RangeSensor(Component):
@@ -443,7 +475,7 @@ def main():
     RangeSensor4 = RangeSensor(pins=[],number=4)
     rangeSensors = [RangeSensor1,RangeSensor2,RangeSensor3,RangeSensor4]
 
-    Webcam1 = Webcam(number=1)
+    Webcam1 = Webcam(number=1, resolution=(32,32), framerate=10)
     Compass1 = Compass(pins=[],number=1)
     NerfGun1 = NerfGun(pins=[],number=1)
 
