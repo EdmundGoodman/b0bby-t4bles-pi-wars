@@ -47,7 +47,7 @@ def loadImage(filePath):
     img = Image.open(filePath)
     return img
 
-img = loadImage("redBlock.jpg")
+img = loadImage("blueCarpet.jpg")
 DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE = 100,100,20
 Classifier = ImageClassifier(DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBASE)
 print(Classifier.classify(img))
