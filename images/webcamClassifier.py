@@ -63,9 +63,8 @@ Classifier = ImageClassifier(DISTANCE_THRESHOLD, NUMBER_PIXEL_THRESHOLD, ROUNDBA
 while True:
     startTime = time()
     with PiCamera() as camera:
-        camera.resolution = (32,32)
         stream = io.BytesIO()
-        camera.capture(stream, format="png", use_video_port=True)
+        camera.capture(stream, format="png", use_video_port=True, resize=(32,32))
 
     image = Image.open(stream)
     colour, intensity = Classifier.classify(image)
