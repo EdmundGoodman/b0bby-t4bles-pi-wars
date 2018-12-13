@@ -59,7 +59,7 @@ class ImageClassifier:
             del colourValues["white"]
             del colourValues["black"]
             colour += " " + max(colourValues, key=colourValues.get)
-        return colour
+        return colour, colourValues[colour]
 
     def getMeanRGB(self, img):
         pixelsCount = self.formatImage(img)
