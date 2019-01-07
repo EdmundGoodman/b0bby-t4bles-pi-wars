@@ -20,11 +20,6 @@ class ImageClassifier:
             "black" : (0,0,0),
         }
 
-<<<<<<< HEAD
-    def classify(self, img):
-        #Note if no colours are visible (very low light), it returns blue
-
-=======
     def setColourValue(self, colour, value):
         self.colours[colour] = value
 
@@ -40,7 +35,6 @@ class ImageClassifier:
         return colour #, distances[color]
 
     def formatImage(self, img):
->>>>>>> c36d382137303597d2a3304ca04245844e51706b
         #Reduce colour depth
         img = img.point(lambda x: int(x/self.roundBase)*self.roundBase)
         pixels = img.getdata()
@@ -54,26 +48,18 @@ class ImageClassifier:
     def classify(self, img):
         pixelsCount = self.formatImage(img)
         #Classify colour based on getManhattanDistance distance from component colours
-<<<<<<< HEAD
-        colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0, "black": 0}
-=======
         colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0, "white": 0, "black": 0}
->>>>>>> c36d382137303597d2a3304ca04245844e51706b
         for pixels,number in pixelsCount.items():
             colour = self.getBaseColour(pixels)
             if colour in colourValues.keys():
                 colourValues[colour] += number
         #Return the most prevalent colour
         colour = max(colourValues, key=colourValues.get)
-<<<<<<< HEAD
-        return colourValues
-=======
         if (colour == "white" or colour == "black") and False:
             del colourValues["white"]
             del colourValues["black"]
             colour += " " + max(colourValues, key=colourValues.get)
         return colour, colourValues[colour]
->>>>>>> c36d382137303597d2a3304ca04245844e51706b
 
     def getMeanRGB(self, img):
         pixelsCount = self.formatImage(img)
@@ -119,17 +105,4 @@ with picamera.PiCamera() as camera:
     start = time.time()
     camera.capture_sequence(outputs(), 'jpeg', use_video_port=True)
     finish = time.time()
-    print('Captured 40 images at %.2ffps' % (40 / (finish - start)))
-
-<<<<<<< HEAD
-    image = Image.open(stream)
-
-    area = (400, 400, 800, 800)
-    image = image.crop(area)
-
-    colourValues = Classifier.classify(image)
-    print(colourValues)
-    #print("The object is {0} ({1}), and was classified in {2}s".format(colour, intensity, round(time()-startTime,2)))
-exit()
-=======
->>>>>>> c36d382137303597d2a3304ca04245844e51706b
+print('Captured 40 images at %.2ffps' % (40 / (finish - start)))
