@@ -33,7 +33,7 @@ class ImageClassifier:
 
     def classify(self, img):
         #Note if no colours are visible (very low light), it returns blue
-        
+
         #Reduce colour depth
         img = img.point(lambda x: int(x/self.roundBase)*self.roundBase)
         pixels = img.getdata()
@@ -43,14 +43,14 @@ class ImageClassifier:
             if pixelsCount[k] < self.numberPixelThreshold:
                 del pixelsCount[k]
         #Classify colour based on getManhattanDistance distance from component colours
-        colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0}
+        colourValues = {"red": 0, "green": 0, "blue": 0, "yellow": 0, "black": 0}
         for pixels,number in pixelsCount.items():
             colour = self.getBaseColour(pixels)
             if colour in colourValues.keys():
                 colourValues[colour] += number
         #Return the most prevalent colour
         colour = max(colourValues, key=colourValues.get)
-        return colour, colourValues[colour]
+        return colourValues
 
 def loadImage(filePath):
     #Read the image
@@ -67,6 +67,11 @@ while True:
         camera.capture(stream, format="png", use_video_port=True, resize=(32,32))
 
     image = Image.open(stream)
-    colour, intensity = Classifier.classify(image)
-    print("The object is {0} ({1}), and was classified in {2}s".format(colour, intensity, round(time()-startTime,2)))
+
+    area = (400, 400, 800, 800)
+    image = image.crop(area)
+
+    colourValues = Classifier.classify(image)
+    print(colourValues)
+    #print("The object is {0} ({1}), and was classified in {2}s".format(colour, intensity, round(time()-startTime,2)))
 exit()
